@@ -2,19 +2,33 @@ import requests
 import sys
 import os
 
-def build():
+def cmdline():
+    if len(sys.argv) != 4:
+        print "Insufficient params !!"
+        return
     pages = int(sys.argv[1])
     link = sys.argv[2]
     hname = sys.argv[3]
 
-    if len(sys.argv) != 4:
-        print "Insufficient params !!"
-        return
+    build(pages, link, hname)
 
+def fileImport():
+    file_to_look = sys.argv[1]
+    with open(file_to_look, "r") as f:
+      for line in f:
+        opts = line.split(",")
+        pgs = int(opts[0])
+        lnk = opts[1]
+        hname = opts[2].rstrip()
+
+        print ("A: %s, B: %s, C: %s" % (pgs, lnk, hname))
+        build(pgs, lnk, hname)
+
+def build(pages, link, hname):
     # Create dir to dump
     if not os.path.exists(hname):
         print "Creating dir %s" %hname
-        os.mkdir(hname)
+        os.makedirs(hname)
 
     ls = link.split("/")
     # Get img link like ccdn0001.jpg
@@ -59,4 +73,7 @@ def build():
         f.write(requests.get(link_sp).content)
         f.close()
 
-build()
+if len(sys.argv) == 2:
+    fileImport()
+else:
+    cmdline()
