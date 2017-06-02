@@ -1,6 +1,10 @@
-import requests
-import sys
 import os
+import sys
+import json
+
+import requests
+import urllib2
+from bs4 import BeautifulSoup
 
 def cmdline():
     if len(sys.argv) != 4:
@@ -42,7 +46,11 @@ def build(pages, link, hname):
     nos = sum(c.isdigit() for c in fjpg)
     pre = []
     for i in range(0, 1000):
-        if nos == 3:
+        if nos == 1:
+            t = str("%0.1d" % i)
+        elif nos == 2:
+            t = str("%0.2d" % i)
+        elif nos == 3:
             t = str("%0.3d" % i)
         else:
             t = str("%0.4d" % i)
@@ -73,7 +81,99 @@ def build(pages, link, hname):
         f.write(requests.get(link_sp).content)
         f.close()
 
-if len(sys.argv) == 2:
-    fileImport()
-else:
-    cmdline()
+
+def getPagesCurChapter(soup):
+    print "Get Pages"
+    jData = soup.find_all("script")
+    plen = 0
+    for j in jData:
+        if j.string is not None:
+            txt = j.string
+            txt = "".join(txt.split(None))
+            idx = txt.find("gData=")
+            if idx > 0:
+                data = txt[txt.find("vargData=") + 9:-1]
+
+                data = data.replace("\'", "\"")
+                jss = json.loads(data)
+
+                plen = len(jss["images"])
+                break
+
+    return plen
+
+def getCdnUrl(soup):
+    cdn = soup.find_all("img", id="arf-reader")
+
+    print (" CDN URL found : %s " %cdn[0]["src"])
+    return cdn[0]["src"]
+
+def getTitle(soup):
+    tag = soup.find_all("img", id="arf-reader")
+
+    return tag[0]["alt"]
+
+def getChapter(soup):
+    chapters = soup.find_all('a', class_='js-rdrChapter')
+    ch_len = []
+
+    # Finds non-unique chapter
+    for ch in chapters:
+        if ch["data-cslug"] not in ch_len:
+            ch_len.append(ch["data-cslug"])
+
+    return ch_len
+
+def startDownload():
+    if len(sys.argv) != 2:
+        print "Insufficient Paramters. Provide url."
+        return
+
+    url = sys.argv[1]
+
+    if url.endswith("/"):
+        url = url[:-1]
+
+    opts = url.split("/")
+
+    # Allow chapters append
+    opts.pop()
+    opts.append("")
+
+    page = urllib2.urlopen(url)
+
+    soup = BeautifulSoup(page, "html.parser")
+
+    # Get Title
+    title = getTitle(soup)
+
+    # Get chapters
+    chapters = getChapter(soup)
+
+    for i in chapters:
+        i = int(i)
+        ch_url = "/".join(opts) + str(i)
+
+        # Fetch url to get page and cdn url
+        page = urllib2.urlopen(ch_url)
+        soup = BeautifulSoup(page, "html.parser")
+
+        pgs = int(getPagesCurChapter(soup))
+        cdn_url = getCdnUrl(soup)
+
+        # Don't create additional folders for 1 chapter
+        if len(chapters) == 1:
+            ch_title = title
+        else:
+            ch_title = title + "/" + str(i)
+
+        print(" Chapter: %d , pages: %d, url: %s  " % (i, pgs, ch_url))
+        print "Fetching Data"
+        build(pgs, cdn_url, ch_title)
+
+# if len(sys.argv) == 2:
+#     fileImport()
+# else:
+#     cmdline()
+
+startDownload()
