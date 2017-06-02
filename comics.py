@@ -119,9 +119,11 @@ def getChapter(soup):
 
     # Finds non-unique chapter
     for ch in chapters:
-        if ch["data-cslug"] not in ch_len:
-            ch_len.append(ch["data-cslug"])
+        tmp = int(ch["data-cslug"])
+        if tmp not in ch_len:
+            ch_len.append(tmp)
 
+    ch_len.sort()
     return ch_len
 
 def startDownload():
@@ -137,7 +139,16 @@ def startDownload():
     opts = url.split("/")
 
     # Allow chapters append
-    opts.pop()
+    ch_start = int(opts.pop())
+    print opts
+
+    # Check if popped item is not page
+    tmp = opts.pop()
+    if tmp.isdigit():
+        ch_start = int(tmp)
+    else:
+        opts.append(tmp)
+
     opts.append("")
 
     page = urllib2.urlopen(url)
@@ -150,8 +161,10 @@ def startDownload():
     # Get chapters
     chapters = getChapter(soup)
 
+    # Pick chapters more than current passed
+    chapters = [a for a in chapters if a >= ch_start]
+
     for i in chapters:
-        i = int(i)
         ch_url = "/".join(opts) + str(i)
 
         # Fetch url to get page and cdn url
