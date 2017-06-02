@@ -6,6 +6,11 @@ import requests
 import urllib2
 from bs4 import BeautifulSoup
 
+# H2R - 1
+# Mangabb - 2
+comic_source = None
+hdr = {}
+
 def cmdline():
     if len(sys.argv) != 4:
         print "Insufficient params !!"
@@ -84,47 +89,112 @@ def build(pages, link, hname):
 
 def getPagesCurChapter(soup):
     print "Get Pages"
-    jData = soup.find_all("script")
     plen = 0
-    for j in jData:
-        if j.string is not None:
-            txt = j.string
-            txt = "".join(txt.split(None))
-            idx = txt.find("gData=")
-            if idx > 0:
-                data = txt[txt.find("vargData=") + 9:-1]
+    if comic_source == 1:
+        jData = soup.find_all("script")
+        for j in jData:
+            if j.string is not None:
+                txt = j.string
+                txt = "".join(txt.split(None))
+                idx = txt.find("gData=")
+                if idx > 0:
+                    data = txt[txt.find("vargData=") + 9:-1]
 
-                data = data.replace("\'", "\"")
-                jss = json.loads(data)
+                    data = data.replace("\'", "\"")
+                    jss = json.loads(data)
 
-                plen = len(jss["images"])
-                break
+                    plen = len(jss["images"])
+                    break
+    elif comic_source == 2:
+        pages_lst = []
+        for pgs in soup.find_all('option'):
+            try:
+                chps = pgs.string.strip()
 
+                if chps.isdigit():
+                    to_add = int(chps)
+                    if to_add not in pages_lst:
+                        pages_lst.append(to_add)
+            except KeyError:
+                pass
+        plen = len(pages_lst)
     return plen
 
-def getCdnUrl(soup):
-    cdn = soup.find_all("img", id="arf-reader")
+def setPreRequest(url):
+    global comic_source
+    global hdr
+    if "hentai2read" in url :
+        comic_source = 1
+        hdr = {}
+    elif "goodmanga" in url or "mangabb" in url:
+        hdr = {
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"
+        }
+        comic_source = 2
 
-    print (" CDN URL found : %s " %cdn[0]["src"])
-    return cdn[0]["src"]
+def getCdnUrl(soup):
+    cdn = ""
+    if comic_source == 1:
+        cdn = soup.find_all("img", id="arf-reader")
+
+        cdn = cdn[0]["src"]
+    elif comic_source == 2:
+        tags = soup.find_all("img")
+
+        for tag in tags:
+            try:
+                wdt = tag["width"]
+                cdn = tag["src"]
+            except KeyError:
+                pass
+
+    print (" CDN URL found : %s " %cdn)
+    return cdn
 
 def getTitle(soup):
-    tag = soup.find_all("img", id="arf-reader")
+    if comic_source == 1:
+        tag = soup.find_all("img", id="arf-reader")
 
-    return tag[0]["alt"]
+        return tag[0]["alt"]
+    elif comic_source == 2:
+        for tag in soup.find_all('a'):
+            if tag.parent.name == 'h3':
+                return tag.string
+
 
 def getChapter(soup):
-    chapters = soup.find_all('a', class_='js-rdrChapter')
     ch_len = []
+    if comic_source == 1:
+        chapters = soup.find_all('a', class_='js-rdrChapter')
 
-    # Finds non-unique chapter
-    for ch in chapters:
-        tmp = int(ch["data-cslug"])
-        if tmp not in ch_len:
-            ch_len.append(tmp)
+        # Finds non-unique chapter
+        for ch in chapters:
+            tmp = int(ch["data-cslug"])
+            if tmp not in ch_len:
+                ch_len.append(tmp)
+
+    elif comic_source == 2:
+        for ch in soup.find_all('option'):
+            try:
+                # Double pop
+                tmp = ch["value"].split("/")
+
+                pg = tmp.pop()
+                ch = tmp.pop()
+
+                if not ch.isdigit():
+                    try:
+                        to_add = int(pg)
+                    except ValueError:
+                        to_add = float(pg)
+                    if to_add not in ch_len:
+                        ch_len.append(to_add)
+            except KeyError:
+                pass
 
     ch_len.sort()
     return ch_len
+
 
 def startDownload():
     if len(sys.argv) != 2:
@@ -132,6 +202,7 @@ def startDownload():
         return
 
     url = sys.argv[1]
+    setPreRequest(url)
 
     if url.endswith("/"):
         url = url[:-1]
@@ -150,7 +221,8 @@ def startDownload():
 
     opts.append("")
 
-    page = urllib2.urlopen(url)
+    req = urllib2.Request(url, headers=hdr)
+    page = urllib2.urlopen(req)
 
     soup = BeautifulSoup(page, "html.parser")
 
@@ -166,8 +238,10 @@ def startDownload():
     for i in chapters:
         ch_url = "/".join(opts) + str(i)
 
+        print ch_url
         # Fetch url to get page and cdn url
-        page = urllib2.urlopen(ch_url)
+        req_ch = urllib2.Request(ch_url, headers=hdr)
+        page = urllib2.urlopen(req_ch)
         soup = BeautifulSoup(page, "html.parser")
 
         pgs = int(getPagesCurChapter(soup))
