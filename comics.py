@@ -140,7 +140,6 @@ def startDownload():
 
     # Allow chapters append
     ch_start = int(opts.pop())
-    print opts
 
     # Check if popped item is not page
     tmp = opts.pop()
