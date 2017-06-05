@@ -11,27 +11,13 @@ from bs4 import BeautifulSoup
 comic_source = None
 hdr = {}
 
-def cmdline():
-    if len(sys.argv) != 4:
-        print "Insufficient params !!"
-        return
-    pages = int(sys.argv[1])
-    link = sys.argv[2]
-    hname = sys.argv[3]
-
-    build(pages, link, hname)
-
-def fileImport():
-    file_to_look = sys.argv[1]
+def fileImport(file_to_look):
     with open(file_to_look, "r") as f:
       for line in f:
-        opts = line.split(",")
-        pgs = int(opts[0])
-        lnk = opts[1]
-        hname = opts[2].rstrip()
+        link = line.strip()
 
-        print ("A: %s, B: %s, C: %s" % (pgs, lnk, hname))
-        build(pgs, lnk, hname)
+        print ("Downloading for %s" % (link))
+        startDownload(link)
 
 def build(pages, link, hname):
     # Create dir to dump
@@ -198,12 +184,7 @@ def getChapter(soup):
     return ch_len
 
 
-def startDownload():
-    if len(sys.argv) != 2:
-        print "Insufficient Paramters. Provide url."
-        return
-
-    url = sys.argv[1]
+def startDownload(url):
     setPreRequest(url)
 
     if url.endswith("/"):
@@ -259,9 +240,11 @@ def startDownload():
         print "Fetching Data"
         build(pgs, cdn_url, ch_title)
 
-# if len(sys.argv) == 2:
-#     fileImport()
-# else:
-#     cmdline()
-
-startDownload()
+if len(sys.argv) == 2:
+    param = sys.argv[1]
+    if os.path.exists(param):
+        fileImport(param)
+    else:
+        startDownload(param)
+else:
+    print "Insufficient Parameter!!"
