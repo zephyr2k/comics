@@ -35,6 +35,8 @@ def fileImport():
 
 def build(pages, link, hname):
     # Create dir to dump
+    # sanitize hname folder
+    hname = str(hname).replace(":", "")
     if not os.path.exists(hname):
         print "Creating dir %s" %hname
         os.makedirs(hname)
