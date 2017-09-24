@@ -6,6 +6,9 @@ import requests
 import urllib2
 from bs4 import BeautifulSoup
 
+# Change default encoding to add support
+reload(sys)
+sys.setdefaultencoding('utf8')
 # H2R - 1
 # Mangabb - 2
 comic_source = None
@@ -22,7 +25,8 @@ def fileImport(file_to_look):
 def build(pages, link, hname):
     # Create dir to dump
     # sanitize hname folder
-    hname = str(hname).replace(":", "")
+    print hname
+    # hname = hname.encode('utf-8').strip()
     if not os.path.exists(hname):
         print "Creating dir %s" %hname
         os.makedirs(hname)
@@ -61,12 +65,20 @@ def build(pages, link, hname):
         exit()
 
     # Rebuild url again
-    f_st = fjpg.split(pre[match_pos])[0]
+    s_arr = fjpg.split(pre[match_pos])
+
+    # Consider extra chars after page number
+    # like: vcdn001_copy.
+    f_st = s_arr[0]
+    f_end = '.jpg'
+    if len(s_arr) == 2:
+        f_end = s_arr[1]
+
     ls = ls + f_st
 
     for x in range(0, pages):
         file_dump = hname + "/" + "%0.3d.jpg" % (x + 1)
-        link_sp = ls + pre[match_pos + x] + '.jpg'
+        link_sp = ls + pre[match_pos + x] + f_end
 
         print ("Trying url: %s -> saving as: %s" % (link_sp, file_dump))
 
