@@ -19,7 +19,7 @@ file.
 <h4>Installation</h4> 
 1. Install python <br>
 2. From terminal Install requirements: <br>
-    pip install -r requirements.txt 
+    ```pip install -r requirements.txt```
 3. You are ready to Go!!! <br>
  
 ```
