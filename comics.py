@@ -165,7 +165,7 @@ def getTitle(soup):
 def getChapter(soup):
     ch_len = []
     if comic_source == 1:
-        chapters = soup.find_all('a', class_='js-rdrChapter')
+        chapters = soup.find_all('a', class_='js-reader_chapters')
 
         # Finds non-unique chapter
         for ch in chapters:
@@ -252,11 +252,12 @@ def startDownload(url):
         print "Fetching Data"
         build(pgs, cdn_url, ch_title)
 
-if len(sys.argv) == 2:
-    param = sys.argv[1]
-    if os.path.exists(param):
-        fileImport(param)
+if __name__ == "__main__":
+    if len(sys.argv) == 2:
+        param = sys.argv[1]
+        if os.path.exists(param):
+            fileImport(param)
+        else:
+            startDownload(param)
     else:
-        startDownload(param)
-else:
-    print "Insufficient Parameter!!"
+        print "Insufficient Parameter!!"
