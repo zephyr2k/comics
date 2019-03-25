@@ -3,12 +3,18 @@ import sys
 import json
 
 import requests
-import urllib2
+
+import urllib.request as gen_url
+#import urllib as urllib2
+
 from bs4 import BeautifulSoup
 
 # Change default encoding to add support
-reload(sys)
-sys.setdefaultencoding('utf8')
+if sys.version[0] == '2':
+    from importlib import reload
+    reload(sys)
+    sys.setdefaultencoding('utf8')
+
 # H2R - 1
 # Mangabb - 2
 comic_source = None
@@ -25,10 +31,10 @@ def fileImport(file_to_look):
 def build(pages, link, hname):
     # Create dir to dump
     # sanitize hname folder
-    print hname
+    print ("%s" % hname)
     # hname = hname.encode('utf-8').strip()
     if not os.path.exists(hname):
-        print "Creating dir %s" %hname
+        print ("Creating dir %s" %hname)
         os.makedirs(hname)
 
     ls = link.split("/")
@@ -61,7 +67,7 @@ def build(pages, link, hname):
             break
 
     if match_pos == -1:
-        print "NO Matching found"
+        print ("NO Matching found")
         exit()
 
     # Rebuild url again
@@ -88,7 +94,7 @@ def build(pages, link, hname):
 
 
 def getPagesCurChapter(soup):
-    print "Get Pages"
+    print ("Get Pages")
     plen = 0
     if comic_source == 1:
         jData = soup.find_all("script")
@@ -216,8 +222,8 @@ def startDownload(url):
 
     opts.append("")
 
-    req = urllib2.Request(url, headers=hdr)
-    page = urllib2.urlopen(req)
+    req = gen_url.Request(url, headers=hdr)
+    page = gen_url.urlopen(req)
 
     soup = BeautifulSoup(page, "html.parser")
 
@@ -233,10 +239,10 @@ def startDownload(url):
     for i in chapters:
         ch_url = "/".join(opts) + str(i)
 
-        print ch_url
+        print (ch_url)
         # Fetch url to get page and cdn url
-        req_ch = urllib2.Request(ch_url, headers=hdr)
-        page = urllib2.urlopen(req_ch)
+        req_ch = gen_url.Request(ch_url, headers=hdr)
+        page = gen_url.urlopen(req_ch)
         soup = BeautifulSoup(page, "html.parser")
 
         pgs = int(getPagesCurChapter(soup))
@@ -249,7 +255,7 @@ def startDownload(url):
             ch_title = title + "/" + str(i)
 
         print(" Chapter: %d , pages: %d, url: %s  " % (i, pgs, ch_url))
-        print "Fetching Data"
+        print ("Fetching Data")
         build(pgs, cdn_url, ch_title)
 
 if __name__ == "__main__":
@@ -260,4 +266,4 @@ if __name__ == "__main__":
         else:
             startDownload(param)
     else:
-        print "Insufficient Parameter!!"
+        print ("Insufficient Parameter!!")
